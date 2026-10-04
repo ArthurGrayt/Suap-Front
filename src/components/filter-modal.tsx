@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface FilterModalProps {
   visible: boolean;
@@ -18,6 +19,8 @@ export default function FilterModal({
   initialDateFilter = 'any',
   initialPoints = 10 
 }: FilterModalProps) {
+  // Insets do sistema (botões de navegação na borda inferior)
+  const insets = useSafeAreaInsets();
   const [dateFilter, setDateFilter] = useState(initialDateFilter); // 'any', '7days', 'month', 'custom'
   const [points, setPoints] = useState(initialPoints); // Slider value (fake)
 
@@ -33,7 +36,7 @@ export default function FilterModal({
         activeOpacity={1} 
         onPress={onClose}
       >
-        <TouchableOpacity activeOpacity={1} className="w-full max-w-[400px] bg-surface rounded-t-[32px] p-6 pt-2 shadow-2xl">
+        <TouchableOpacity activeOpacity={1} style={{ paddingBottom: 24 + insets.bottom }} className="w-full max-w-[400px] bg-surface rounded-t-[32px] p-6 pt-2 shadow-2xl">
           
           {/* Pill de arrastar (estético) */}
           <View className="w-12 h-1.5 bg-surface-variant rounded-full self-center mb-6 mt-2" />

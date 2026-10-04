@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface BottomNavbarProps {
   activeTab?: string;
@@ -9,9 +10,12 @@ interface BottomNavbarProps {
 
 export default function BottomNavbar({ activeTab = 'prazos' }: BottomNavbarProps) {
   const router = useRouter();
+  // Obtém as áreas seguras (botões de navegação do Android na parte inferior)
+  const insets = useSafeAreaInsets();
 
   return (
-    <View className="flex-row items-center h-16 bg-surface-container-lowest/90 border-t border-surface-container pb-2">
+    // Altura base 64 + inset inferior; paddingBottom mantém os ícones acima dos botões do sistema
+    <View style={{ height: 64 + insets.bottom, paddingBottom: 8 + insets.bottom }} className="flex-row items-center bg-surface-container-lowest/90 border-t border-surface-container">
       
       {/* Aba: Prazos */}
       <TouchableOpacity 

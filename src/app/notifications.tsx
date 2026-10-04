@@ -69,7 +69,7 @@ export default function NotificationsScreen() {
 
       <ScrollView 
         className="flex-1" 
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
@@ -175,10 +175,8 @@ export default function NotificationsScreen() {
         )}
       </ScrollView>
 
-      {/* FIXED BOTTOM NAVBAR */}
-      <View className="absolute bottom-0 w-full">
-        <BottomNavbar activeTab="notificacoes" />
-      </View>
+      {/* BOTTOM NAVBAR no fluxo: o scroll termina acima dela e dos botões do sistema */}
+      <BottomNavbar activeTab="notificacoes" />
     </View>
   );
 }

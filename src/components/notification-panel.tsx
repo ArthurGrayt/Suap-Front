@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Dimensions, Modal, Pressable, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets, EdgeInsets } from 'react-native-safe-area-context';
 
 interface NotificationPanelProps {
   onClose: () => void;
 }
 
-export default function NotificationPanel({ onClose }: NotificationPanelProps) {
+// Componente interno: recebe os insets do provider raiz por props (o Modal é outra janela)
+function NotificationPanelBody({ onClose, insets }: NotificationPanelProps & { insets: EdgeInsets }) {
   const [filter, setFilter] = useState<'todas' | 'nao-lidas'>('todas');
   const mockUnreadCount = 3;
 
@@ -14,10 +16,20 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
   // O _layout.tsx usa sm:max-h-[850px] e sm:h-[95vh]
   const emulatorHeight = Math.min(850, windowHeight * 0.95);
   const overflowHeight = windowHeight - emulatorHeight;
-  const paddingToOffsetOverflow = overflowHeight + 100; // 100 de margem de segurança + 64 do header
+  // 100 de margem + status bar + barra de navegação (usado só na web, onde o painel vaza por baixo)
+  const paddingToOffsetOverflow = overflowHeight + 100 + insets.top + insets.bottom;
 
-  return (
-    <View style={{ position: 'absolute', top: 64, left: 0, right: 0, bottom: -1000, zIndex: 100 }}>
+  // Altura real do header (64 + status bar)
+  const headerHeight = 64 + insets.top;
+  // Overlay container settings
+  const containerStyle = { flex: 1 };
+  
+  // O painel branco fica colado na parte inferior. Usamos insets.bottom para padding final.
+  const panelStyle = { bottom: 0 };
+  const scrollBottomPadding = paddingToOffsetOverflow + insets.bottom + 16;
+
+  const content = (
+    <View style={containerStyle}>
       {/* Backdrop Escuro */}
       <TouchableOpacity 
         activeOpacity={1} 
@@ -28,7 +40,7 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
       {/* Painel Branco */}
       <View 
         className="absolute top-0 left-0 right-0 bg-surface shadow-2xl overflow-hidden flex-col"
-        style={{ height: Dimensions.get('window').height }}
+        style={panelStyle}
       >
         <View className="w-full px-4 pt-4">
           <View className="flex-row items-center pb-3">
@@ -72,7 +84,7 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
 
         <ScrollView 
           className="flex-1 w-full px-4" 
-          contentContainerStyle={{ paddingBottom: paddingToOffsetOverflow }}
+          contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
           showsVerticalScrollIndicator={false}
         >
           {/* Lista de Notificações */}
@@ -231,6 +243,31 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
           </View>
         </ScrollView>
       </View>
+    </View>
+  );
+
+  return content;
+}
+
+export default function NotificationPanel({ onClose }: NotificationPanelProps) {
+  const insets = useSafeAreaInsets();
+  const windowHeight = Dimensions.get('window').height;
+  const headerHeight = 64 + insets.top;
+
+  // Renderiza sobre tudo usando absolute positioning (sem Modal para não quebrar contexto do Expo Router)
+  return (
+    <View 
+      style={{ 
+        position: 'absolute', 
+        top: headerHeight, 
+        left: 0, 
+        right: 0, 
+        height: windowHeight - headerHeight, 
+        zIndex: 9999, 
+        elevation: 9999 
+      }}
+    >
+      <NotificationPanelBody onClose={onClose} insets={insets} />
     </View>
   );
 }

@@ -1,8 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 // Importa os componentes básicos nativos para montar a interface
 import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View, Image } from 'react-native';
-// Importa SafeAreaView do react-native-safe-area-context para respeitar os entalhes dos dispositivos
-import { SafeAreaView } from 'react-native-safe-area-context';
+// Os insets da safe area já são aplicados pelo Header e pelo BottomNavbar (mesmo padrão das outras telas)
 // Importa ícones da biblioteca Expo
 import BottomNavbar from '@/components/bottom-navbar';
 import FilterModal from '@/components/filter-modal';
@@ -166,7 +165,7 @@ export default function Index() {
 
 
   return (
-    <SafeAreaView className="flex-1 bg-surface">
+    <View className="flex-1 bg-surface">
 
       <Header />
 
@@ -370,6 +369,6 @@ export default function Index() {
         }}
       />
 
-    </SafeAreaView>
+    </View>
   );
 }

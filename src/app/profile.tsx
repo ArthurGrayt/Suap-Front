@@ -7,6 +7,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import Header from '@/components/header';
 import { supabase } from '@/lib/supabase';
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode } from 'base64-arraybuffer';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -111,19 +113,20 @@ export default function ProfileScreen() {
     setUploadingAvatar(true);
     
     try {
-      // Cria um nome de arquivo único
-      const fileExt = uri.split('.').pop() || 'jpeg';
-      const fileName = `${prefId}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      // Obtem a extensao do arquivo pela URI
+      const uriExt = uri.split('.').pop() || 'jpeg';
+      const fileExt = uriExt.replace(/[^a-zA-Z0-9]/g, '') || 'jpeg';
 
-      // Carrega o arquivo local
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      // Nome único, sem '/' → o arquivo fica na RAIZ do bucket
+      const filePath = `${prefId}-${Date.now()}.${fileExt}`;
 
-      // Envia para o storage (bucket 'profile_pic')
+      // Lendo a imagem como base64 (Forma mais segura no React Native)
+      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+
+      // Envia para o storage (bucket 'profile_pic') decodificando o base64 para ArrayBuffer
       const { error: uploadError } = await supabase.storage
         .from('profile_pic')
-        .upload(filePath, blob, { upsert: true, contentType: `image/${fileExt}` });
+        .upload(filePath, decode(base64), { upsert: true, contentType: `image/${fileExt}` });
 
       if (uploadError) throw uploadError;
 
@@ -168,7 +171,7 @@ export default function ProfileScreen() {
 
       <ScrollView 
         className="flex-1" 
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
@@ -368,10 +371,8 @@ export default function ProfileScreen() {
         )}
       </ScrollView>
 
-      {/* FIXED BOTTOM NAVBAR */}
-      <View className="absolute bottom-0 w-full">
-        <BottomNavbar activeTab="perfil" />
-      </View>
+      {/* BOTTOM NAVBAR no fluxo: o scroll termina acima dela e dos botões do sistema */}
+      <BottomNavbar activeTab="perfil" />
     </View>
   );
 }

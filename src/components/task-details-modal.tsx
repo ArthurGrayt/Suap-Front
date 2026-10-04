@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Task } from '@/types/task';
 import { formatDate, formatTime, getDaysDifference, getHoursDifference, isToday, isTomorrow } from '@/utils/date';
 
@@ -11,6 +12,8 @@ interface TaskDetailsModalProps {
 }
 
 export default function TaskDetailsModal({ visible, onClose, task }: TaskDetailsModalProps) {
+  // Insets do sistema (hook deve vir antes de qualquer return condicional)
+  const insets = useSafeAreaInsets();
   if (!task) return null;
 
   const now = new Date();
@@ -218,7 +221,7 @@ export default function TaskDetailsModal({ visible, onClose, task }: TaskDetails
           </ScrollView>
 
           {/* Action Footer */}
-          <View className="p-4 bg-surface border-t border-surface-container-high shadow-lg shrink-0 gap-3 pb-8">
+          <View style={{ paddingBottom: 16 + insets.bottom }} className="p-4 bg-surface border-t border-surface-container-high shadow-lg shrink-0 gap-3">
             <TouchableOpacity 
               onPress={handleOpenSuap}
               className="bg-primary hover:bg-primary/90 rounded-xl py-3.5 px-4 flex-row items-center justify-center shadow-sm"

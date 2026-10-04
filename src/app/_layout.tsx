@@ -2,8 +2,19 @@ import '../global.css';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
+import { usePushNotifications } from '../hooks/usePushNotifications';
+import { useEffect } from 'react';
 
 export default function RootLayout() {
+  const { expoPushToken } = usePushNotifications();
+
+  useEffect(() => {
+    // Aqui no futuro você pode enviar o expoPushToken para a API (Supabase)
+    if (expoPushToken) {
+      console.log("Token de Notificação (Expo):", expoPushToken);
+    }
+  }, [expoPushToken]);
+
   return (
     // Fundo da tela inteira (cinza claro em telas grandes)
     <View className="flex-1 bg-surface-container-low sm:items-center sm:justify-center">

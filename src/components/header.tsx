@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import NotificationPanel from './notification-panel';
@@ -17,6 +18,8 @@ export default function Header({
   showProfileInfo = false 
 }: HeaderProps) {
   const router = useRouter();
+  // Obtém as áreas seguras do dispositivo (status bar no topo)
+  const insets = useSafeAreaInsets();
   const [firstName, setFirstName] = useState('');
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
@@ -33,7 +36,8 @@ export default function Header({
   }, [showProfileInfo]);
 
   return (
-    <View style={{ zIndex: 9999, elevation: 9999 }} className="relative h-16 px-4 flex-row items-center justify-between bg-primary-container/95 border-b border-surface-container">
+    // Altura base de 64 + inset do topo; paddingTop empurra o conteúdo para baixo da status bar
+    <View style={{ zIndex: 9999, elevation: 9999, height: 64 + insets.top, paddingTop: insets.top }} className="relative px-4 flex-row items-center justify-between bg-primary-container/95 border-b border-surface-container">
       <View className="flex-row items-center">
         {showBackButton && (
           <TouchableOpacity onPress={() => router.back()} className="mr-3 active:opacity-70">
