@@ -3,6 +3,8 @@ import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import type * as NotificationsType from 'expo-notifications';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
+import { router } from 'expo-router';
+import { useNotificationStore } from '@/store/useNotificationStore';
 
 // Detecta se está rodando dentro do Expo Go (push remoto não é suportado nele)
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
@@ -38,6 +40,8 @@ export const usePushNotifications = (): PushNotificationState => {
   // Refs das assinaturas, iniciadas com null (useRef exige valor inicial)
   const notificationListener = useRef<NotificationsType.EventSubscription | null>(null);
   const responseListener = useRef<NotificationsType.EventSubscription | null>(null);
+
+  const addNotification = useNotificationStore(state => state.addNotification);
 
   async function registerForPushNotificationsAsync() {
     let token = '';
@@ -101,12 +105,37 @@ export const usePushNotifications = (): PushNotificationState => {
     // Escuta notificações recebidas com o app aberto
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
       setNotification(notification);
+      
+      const { title, body, data } = notification.request.content;
+      addNotification({
+        id: notification.request.identifier,
+        title: title || 'Notificação',
+        body: body || '',
+        type: 'push',
+        taskId: data?.taskId as string | undefined,
+      });
     });
 
     // Escuta quando o usuário CLICA na notificação
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       console.log('Notificação Clicada!', response);
-      // Aqui você poderia redirecionar o usuário dependendo da resposta
+      const { title, body, data } = response.notification.request.content;
+      
+      // Salva na store também caso tenha sido recebida em background
+      addNotification({
+        id: response.notification.request.identifier,
+        title: title || 'Notificação',
+        body: body || '',
+        type: 'push',
+        taskId: data?.taskId as string | undefined,
+      });
+
+      // Redireciona
+      if (data?.taskId) {
+         router.push('/');
+      } else {
+         router.push('/');
+      }
     });
 
     return () => {

@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { useNotificationStore } from '@/store/useNotificationStore';
 import NotificationPanel from './notification-panel';
 
 interface HeaderProps {
@@ -17,11 +18,11 @@ export default function Header({
   showBackButton = false,
   showProfileInfo = false 
 }: HeaderProps) {
-  const router = useRouter();
   // Obtém as áreas seguras do dispositivo (status bar no topo)
   const insets = useSafeAreaInsets();
   const [firstName, setFirstName] = useState('');
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const unreadCount = useNotificationStore(state => state.notifications.filter(n => !n.read).length);
 
   useEffect(() => {
     if (showProfileInfo) {
@@ -67,7 +68,7 @@ export default function Header({
               size={22} 
               color={isNotificationsOpen ? "#195e38" : "#ffffff"} 
             />
-            {!isNotificationsOpen && (
+            {(!isNotificationsOpen && unreadCount > 0) && (
               <View className="absolute top-2 right-2 w-2 h-2 rounded-full border border-primary-container" style={{ backgroundColor: '#ba1a1a' }} />
             )}
           </TouchableOpacity>

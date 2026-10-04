@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1014439145214",
+    "project_id": "suapmanager",
+    "storage_bucket": "suapmanager.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1014439145214:android:8014c34cecb8a9ca843faf",
+        "android_client_info": {
+          "package_name": "com.arthurgrayt.suapmanager"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUjK1XT6cDsDgYVmoZnJ43B_sIsvas6Jc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
