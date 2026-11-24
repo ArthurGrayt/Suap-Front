@@ -12,6 +12,8 @@ export interface Task {
   submission_count: number;
   attachment_url: string | null;
   submitted_at?: string | null;
+  // Pontuação ou valor atribuído à tarefa (opcional e editável pelo aluno)
+  points?: string | null;
   status: 'pending' | 'expired' | 'completed';
   notified_critical: boolean;
   created_at: string;

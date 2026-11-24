@@ -1,150 +1,229 @@
+// Importa React e useState para controlar o filtro de exibição das notificações
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Dimensions, Modal, Pressable, Platform } from 'react-native';
+// Importa componentes visuais e Modal do React Native
+import { View, Text, ScrollView, TouchableOpacity, Dimensions, Modal } from 'react-native';
+// Importa os ícones MaterialIcons
 import { MaterialIcons } from '@expo/vector-icons';
+// Importa hooks e tipos de áreas seguras
 import { useSafeAreaInsets, EdgeInsets } from 'react-native-safe-area-context';
+// Importa o roteador para navegar para a tarefa vinculada
 import { router } from 'expo-router';
+// Importa o store Zustand com as notificações persistidas
 import { useNotificationStore } from '@/store/useNotificationStore';
+// Importa os formatadores padronizados de data e hora do aplicativo
+import { formatDate, formatTime } from '@/utils/date';
 
+// Interface das propriedades aceitas pelo painel de notificações
 interface NotificationPanelProps {
+  // Callback para fechar o painel ao tocar fora, no botão voltar ou após navegar
   onClose: () => void;
 }
 
-// Componente interno: recebe os insets do provider raiz por props (o Modal é outra janela)
+// Componente interno com o corpo do painel (recebe insets do provider raiz)
 function NotificationPanelBody({ onClose, insets }: NotificationPanelProps & { insets: EdgeInsets }) {
+  // Estado para alternar entre todas as notificações ou apenas não lidas
   const [filter, setFilter] = useState<'todas' | 'nao-lidas'>('todas');
-  
+
+  // Obtém lista de notificações e ações do store global
   const { notifications, markAsRead, markAllAsRead } = useNotificationStore();
-  
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const displayedNotifications = filter === 'todas' ? notifications : notifications.filter(n => !n.read);
 
+  // Calcula quantidade de notificações ainda não lidas
+  const unreadCount = notifications.filter((n) => !n.read).length;
+  // Filtra a lista exibida conforme a pílula selecionada
+  const displayedNotifications = filter === 'todas' ? notifications : notifications.filter((n) => !n.read);
+
+  // Calcula a altura da janela para compensar espaço inferior do mockup na Web
   const windowHeight = Dimensions.get('window').height;
-  // O _layout.tsx usa sm:max-h-[850px] e sm:h-[95vh]
+  // Altura máxima do frame simulador definida em _layout.tsx
   const emulatorHeight = Math.min(850, windowHeight * 0.95);
-  const overflowHeight = windowHeight - emulatorHeight;
-  // 100 de margem + status bar + barra de navegação (usado só na web, onde o painel vaza por baixo)
-  const paddingToOffsetOverflow = overflowHeight + 100 + insets.top + insets.bottom;
+  // Diferença de altura caso a tela do navegador seja maior que o mockup
+  const overflowHeight = Math.max(0, windowHeight - emulatorHeight);
+  // Espaçamento inferior seguro para não cortar o último item do scroll
+  const scrollBottomPadding = overflowHeight + insets.bottom + 24;
 
-  // Altura real do header (64 + status bar)
-  const headerHeight = 64 + insets.top;
-  // Overlay container settings
-  const containerStyle = { flex: 1 };
-  
-  // O painel branco fica colado na parte inferior. Usamos insets.bottom para padding final.
-  const panelStyle = { bottom: 0 };
-  const scrollBottomPadding = paddingToOffsetOverflow + insets.bottom + 16;
-
-  const content = (
-    <View style={containerStyle}>
-      {/* Backdrop Escuro */}
-      <TouchableOpacity 
-        activeOpacity={1} 
+  return (
+    <View style={{ flex: 1 }}>
+      {/* Backdrop escuro clicável para fechar o painel */}
+      <TouchableOpacity
+        activeOpacity={1}
         onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Fechar painel de notificações"
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' }}
       />
-      
-      {/* Painel Branco */}
-      <View 
+
+      {/* Painel branco principal contendo cabeçalho de filtros e lista */}
+      <View
         className="absolute top-0 left-0 right-0 bg-surface shadow-2xl overflow-hidden flex-col"
-        style={panelStyle}
+        style={{ bottom: 0 }}
       >
+        {/* Cabeçalho interno do painel */}
         <View className="w-full px-4 pt-4">
           <View className="flex-row items-center pb-3">
             <View className="flex-row items-center gap-1.5">
-              <TouchableOpacity onPress={onClose} className="mr-1 active:opacity-70">
-                <MaterialIcons name="arrow-back" size={24} color="#111c2d" />
+              {/* Botão de fechar/voltar com área de toque >= 44px */}
+              <TouchableOpacity
+                onPress={onClose}
+                accessibilityRole="button"
+                accessibilityLabel="Fechar notificações"
+                className="w-11 h-11 -ml-2 items-center justify-center rounded-full active:bg-surface-container"
+              >
+                <MaterialIcons name="arrow-back" size={24} color="#141d17" />
               </TouchableOpacity>
-              <Text className="text-2xl font-bold text-[#111c2d]">Notificações</Text>
+              {/* Título da seção */}
+              <Text className="text-2xl font-bold text-on-surface">Notificações</Text>
+              {/* Contador vermelho quando existem itens não lidos */}
               {unreadCount > 0 && (
-                <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#ba1a1a', alignItems: 'center', justifyContent: 'center' }} className="shadow-sm ml-1">
-                  <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#ffffff', lineHeight: 14 }}>{unreadCount}</Text>
+                <View className="w-5 h-5 rounded-full bg-error items-center justify-center shadow-sm ml-1">
+                  <Text className="text-[11px] font-bold text-on-error">{unreadCount}</Text>
                 </View>
               )}
             </View>
           </View>
 
-          {/* Pílulas de Filtro e Ações */}
+          {/* Barra de pílulas de filtro e ação de marcar todas como lidas */}
           <View className="flex-row items-center justify-between mb-4">
             <View className="flex-row items-center gap-2">
-              <TouchableOpacity 
+              {/* Filtro Todas */}
+              <TouchableOpacity
                 onPress={() => setFilter('todas')}
-                className="px-3 py-1.5 rounded-full flex-row items-center gap-1.5"
-                style={{ backgroundColor: filter === 'todas' ? '#195e38' : 'transparent' }}
+                accessibilityRole="button"
+                accessibilityLabel={`Mostrar todas as notificações (${notifications.length})`}
+                accessibilityState={{ selected: filter === 'todas' }}
+                className={`px-3 py-2 rounded-full flex-row items-center gap-1.5 ${
+                  filter === 'todas' ? 'bg-primary-container' : 'bg-transparent'
+                }`}
               >
-                <Text className={`font-semibold text-[13px] ${filter === 'todas' ? 'text-white' : 'text-[#404941]'}`}>Todas</Text>
-                <View className={`w-[18px] h-[18px] rounded-full items-center justify-center ${filter === 'todas' ? 'bg-[#004525]' : 'bg-transparent'}`}>
-                  <Text className={`font-bold text-[10px] ${filter === 'todas' ? 'text-white' : 'text-[#404941]'}`}>{notifications.length}</Text>
+                <Text className={`font-semibold text-[13px] ${filter === 'todas' ? 'text-on-primary' : 'text-on-surface-variant'}`}>
+                  Todas
+                </Text>
+                <View
+                  className={`w-[18px] h-[18px] rounded-full items-center justify-center ${
+                    filter === 'todas' ? 'bg-primary' : 'bg-transparent'
+                  }`}
+                >
+                  <Text className={`font-bold text-[10px] ${filter === 'todas' ? 'text-on-primary' : 'text-on-surface-variant'}`}>
+                    {notifications.length}
+                  </Text>
                 </View>
               </TouchableOpacity>
-              <TouchableOpacity 
+
+              {/* Filtro Não lidas */}
+              <TouchableOpacity
                 onPress={() => setFilter('nao-lidas')}
-                className="px-3 py-1.5 rounded-full flex-row items-center gap-1.5"
-                style={{ backgroundColor: filter === 'nao-lidas' ? '#195e38' : 'transparent' }}
+                accessibilityRole="button"
+                accessibilityLabel={`Mostrar notificações não lidas (${unreadCount})`}
+                accessibilityState={{ selected: filter === 'nao-lidas' }}
+                className={`px-3 py-2 rounded-full flex-row items-center gap-1.5 ${
+                  filter === 'nao-lidas' ? 'bg-primary-container' : 'bg-transparent'
+                }`}
               >
-                <Text className={`font-semibold text-[13px] ${filter === 'nao-lidas' ? 'text-white' : 'text-[#404941]'}`}>Não lidas</Text>
-                <Text className={`font-bold text-[11px] ${filter === 'nao-lidas' ? 'text-white' : 'text-[#404941]'}`}>{unreadCount}</Text>
+                <Text className={`font-semibold text-[13px] ${filter === 'nao-lidas' ? 'text-on-primary' : 'text-on-surface-variant'}`}>
+                  Não lidas
+                </Text>
+                <Text className={`font-bold text-[11px] ${filter === 'nao-lidas' ? 'text-on-primary' : 'text-on-surface-variant'}`}>
+                  {unreadCount}
+                </Text>
               </TouchableOpacity>
             </View>
-            
-            <TouchableOpacity onPress={markAllAsRead} className="px-2 py-1 rounded-lg active:bg-surface-container">
-              <Text className="text-[#195e38] font-semibold text-sm">Marcar como lidas</Text>
+
+            {/* Ação em massa para marcar todas como lidas */}
+            <TouchableOpacity
+              onPress={markAllAsRead}
+              accessibilityRole="button"
+              accessibilityLabel="Marcar todas as notificações como lidas"
+              className="px-2 py-2 rounded-lg active:bg-surface-container"
+            >
+              <Text className="text-primary-container font-semibold text-sm">Marcar como lidas</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <ScrollView 
-          className="flex-1 w-full px-4" 
+        {/* Lista rolável das notificações */}
+        <ScrollView
+          className="flex-1 w-full px-4"
           contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Lista de Notificações */}
           <View className="flex-col gap-3">
-            
             {displayedNotifications.length === 0 ? (
-               <View className="items-center justify-center py-10 opacity-70">
-                 <MaterialIcons name="notifications-none" size={48} color="#404941" />
-                 <Text className="mt-4 font-semibold text-[#404941]">Nenhuma notificação</Text>
-               </View>
+              // Estado vazio quando não há notificações para o filtro escolhido
+              <View className="items-center justify-center py-10">
+                <MaterialIcons name="notifications-none" size={48} color="#3d4a40" />
+                <Text className="mt-4 font-semibold text-on-surface-variant">
+                  {filter === 'nao-lidas' ? 'Nenhuma notificação não lida' : 'Nenhuma notificação'}
+                </Text>
+              </View>
             ) : (
-               displayedNotifications.map((notification) => {
-                 const timeLabel = new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                 const dateLabel = new Date(notification.createdAt).toLocaleDateString();
-                 
-                 return (
-                  <TouchableOpacity 
+              // Mapeia cada notificação para um card clicável
+              displayedNotifications.map((notification) => {
+                // Converte timestamp numérico ou string para ISO antes de formatar no padrão do app
+                const createdIso = new Date(notification.createdAt).toISOString();
+                // Formata o horário e a data usando o mesmo utilitário padronizado do app
+                const timeLabel = formatTime(createdIso);
+                const dateLabel = formatDate(createdIso);
+
+                return (
+                  <TouchableOpacity
                     key={notification.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${notification.title}. ${notification.body}`}
                     onPress={() => {
+                      // Marca a notificação como lida antes de navegar
                       markAsRead(notification.id);
+                      // Fecha o painel suspenso
                       onClose();
-                      router.push('/');
+                      // Se houver tarefa associada, navega direto para /task/[id]; caso contrário volta à Home
+                      if (notification.taskId) {
+                        router.push(`/task/${notification.taskId}` as any);
+                      } else {
+                        router.push('/');
+                      }
                     }}
-                    className={`relative flex-row p-4 rounded-xl shadow-sm overflow-hidden active:opacity-80 ${!notification.read ? 'bg-surface-container-lowest' : 'bg-surface-container-low opacity-70'}`}
+                    className={`relative flex-row p-4 rounded-xl shadow-sm overflow-hidden active:opacity-80 ${
+                      !notification.read ? 'bg-surface-container-lowest' : 'bg-surface-container-low opacity-70'
+                    }`}
                   >
-                    <View className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: !notification.read ? '#195e38' : '#d8e3fb' }} />
-                    
+                    {/* Barra lateral verde para não lidas ou neutra para lidas */}
+                    <View
+                      className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+                        !notification.read ? 'bg-primary-container' : 'bg-surface-variant'
+                      }`}
+                    />
+
                     <View className="flex-row items-start gap-3 pl-1 flex-1">
-                      <View className="w-10 h-10 rounded-xl items-center justify-center shrink-0" style={{ backgroundColor: '#c4eed0' }}>
-                        <MaterialIcons name="notifications" size={22} color="#00391c" />
+                      {/* Ícone circular temático */}
+                      <View className="w-10 h-10 rounded-xl items-center justify-center shrink-0 bg-primary-fixed">
+                        <MaterialIcons name="notifications" size={22} color="#00210f" />
                       </View>
-                      
+
                       <View className="flex-col flex-1 gap-1">
+                        {/* Título e bolinha de status não lido */}
                         <View className="flex-row items-center justify-between gap-1">
                           <View className="flex-row items-center gap-1.5 flex-1 pr-2">
-                            <Text className="font-bold text-[15px] text-[#111c2d]" numberOfLines={1}>{notification.title}</Text>
-                            {!notification.read && <View className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#195e38' }} />}
+                            <Text className="font-bold text-[15px] text-on-surface" numberOfLines={1}>
+                              {notification.title}
+                            </Text>
+                            {!notification.read && (
+                              <View className="w-2 h-2 rounded-full shrink-0 bg-primary-container" />
+                            )}
                           </View>
                         </View>
-                        
-                        <Text className="text-[14px] text-[#404941] leading-5 mt-1">{notification.body}</Text>
-                        
+
+                        {/* Corpo descritivo do alerta */}
+                        <Text className="text-[14px] text-on-surface-variant leading-5 mt-1">{notification.body}</Text>
+
+                        {/* Rodapé com carimbo de data/hora e link para abrir o trabalho */}
                         <View className="flex-row items-center justify-between pt-3 mt-1">
                           <View className="flex-row items-center gap-1">
                             <MaterialIcons name="schedule" size={14} color="#707971" />
-                            <Text className="font-bold text-[11px] text-[#111c2d]">{dateLabel} às {timeLabel}</Text>
+                            <Text className="font-bold text-[11px] text-on-surface">
+                              {dateLabel} às {timeLabel}
+                            </Text>
                           </View>
                           {notification.taskId && (
                             <View className="flex-row items-center gap-0.5">
-                              <Text className="font-semibold text-[13px] text-[#195e38]">Ver trabalho</Text>
+                              <Text className="font-semibold text-[13px] text-primary-container">Ver trabalho</Text>
                               <MaterialIcons name="arrow-forward" size={16} color="#195e38" />
                             </View>
                           )}
@@ -152,39 +231,47 @@ function NotificationPanelBody({ onClose, insets }: NotificationPanelProps & { i
                       </View>
                     </View>
                   </TouchableOpacity>
-                 );
-               })
+                );
+              })
             )}
-
           </View>
         </ScrollView>
       </View>
     </View>
   );
-
-  return content;
 }
 
+// Componente principal exportado que renderiza o painel de notificações dentro de um Modal
 export default function NotificationPanel({ onClose }: NotificationPanelProps) {
+  // Obtém as margens seguras do dispositivo (status bar e barra inferior)
   const insets = useSafeAreaInsets();
+  // Calcula a altura total do cabeçalho para posicionar o painel logo abaixo dele
   const headerHeight = 64 + insets.top;
 
   return (
-    <Modal 
-      visible={true} 
-      transparent={true} 
-      animationType="fade" 
+    // Modal transparente que sobrepõe a tela atual
+    <Modal
+      visible={true}
+      transparent={true}
+      animationType="fade"
       onRequestClose={onClose}
       statusBarTranslucent={true}
     >
-      <View style={{ flex: 1 }}>
-        <TouchableOpacity 
-          activeOpacity={1} 
-          onPress={onClose}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: headerHeight }}
-        />
-        <View style={{ position: 'absolute', top: headerHeight, left: 0, right: 0, bottom: 0 }}>
-          <NotificationPanelBody onClose={onClose} insets={insets} />
+      {/* Container raiz que centraliza o conteúdo em telas grandes (desktop) igual ao _layout.tsx */}
+      <View className="flex-1 sm:items-center sm:justify-center">
+        {/* Wrapper com as mesmas dimensões do mockup de celular na web para não vazar na tela inteira */}
+        <View className="w-full h-full sm:max-w-[400px] sm:max-h-[850px] sm:h-[95vh] sm:rounded-[3rem] sm:overflow-hidden sm:border-[8px] sm:border-transparent relative">
+          {/* Área clicável transparente sobre o header para fechar o painel ao tocar fora */}
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={onClose}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: headerHeight }}
+          />
+          {/* Container posicionado exatamente abaixo do header dentro dos limites do aparelho */}
+          <View style={{ position: 'absolute', top: headerHeight, left: 0, right: 0, bottom: 0 }}>
+            {/* Corpo do painel de notificações com filtros e lista */}
+            <NotificationPanelBody onClose={onClose} insets={insets} />
+          </View>
         </View>
       </View>
     </Modal>
